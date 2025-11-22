@@ -7,7 +7,10 @@ import (
 )
 
 func TestCacheSetGet(t *testing.T) {
-	c := New()
+	c, err := New()
+	if err != nil {
+		t.Fatalf("failed to create cache: %v", err)
+	}
 
 	order := &model.Order{OrderUID: "123"}
 	c.Set(order)
