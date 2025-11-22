@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wildberries - Просмотр заказа</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 2em auto;
+            padding: 0 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            text-align: center;
+            color: #481173;
+            margin-bottom: 20px;
+        }
+        .container {
+            background: white;
+            padding: 2em;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5em;
+            font-weight: bold;
+            color: #333;
+        }
+        input {
+            display: block;
+            margin-bottom: 1em;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            width: 100%;
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+            background: #fafafa;
+        }
+        input:focus {
+            outline: none;
+            border-color: #cb11ab;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(203,17,171,0.1);
+        }
+        button {
+            display: block;
+            margin-bottom: 1em;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #cb11ab 0%, #481173 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            text-transform: uppercase;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(203,17,171,0.3);
+        }
+        .error {
+            color: #c33;
+            background-color: #fee;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .order-details {
+            display: none;
+            margin-top: 30px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .section h3 {
+            color: #481173;
+            margin-bottom: 10px;
+        }
+        .section div {
+            margin-bottom: 5px;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #cb11ab;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 10px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+<h1>Поиск заказа Wildberries</h1>
+<div class="container">
+    <label for="orderId">Order UID</label>
+    <input type="text" id="orderId" placeholder="Например: test-365739" />
+    <button id="fetchBtn">Найти заказ</button>
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <div>Поиск заказа...</div>
+    </div>
+    <div class="error" id="error"></div>
+    <div class="order-details" id="orderDetails">
+        <div class="section" id="orderInfo"></div>
+        <div class="section" id="deliveryInfo"></div>
+        <div class="section" id="paymentInfo"></div>
+        <div class="section" id="itemsInfo"></div>
+    </div>
+</div>
+<script>
+    const API_BASE = 'http://localhost:8080';
+    function showLoading(show) {
+        document.getElementById('loading').style.display = show ? 'block' : 'none';
+    }
+    function showError(msg) {
+        const e = document.getElementById('error');
+        e.innerText = msg;
+        e.style.display = 'block';
+    }
+    function hideError() {
+        document.getElementById('error').style.display = 'none';
+    }
+    function showOrderDetails() {
+        document.getElementById('orderDetails').style.display = 'block';
+    }
+    function hideOrderDetails() {
+        document.getElementById('orderDetails').style.display = 'none';
+    }
+    function renderOrder(order) {
+        document.getElementById('orderInfo').innerHTML = `
+        <h3>Информация о заказе</h3>
+        <div>UID: ${order.order_uid}</div>
+        <div>Трек-номер: ${order.track_number}</div>
+        <div>Клиент: ${order.customer_id}</div>
+        <div>Служба доставки: ${order.delivery_service}</div>
+        <div>Дата создания: ${new Date(order.date_created).toLocaleString('ru-RU')}</div>
+      `;
+        const d = order.delivery;
+        document.getElementById('deliveryInfo').innerHTML = `
+        <h3>Информация о доставке</h3>
+        <div>Получатель: ${d.name}</div>
+        <div>Телефон: ${d.phone}</div>
+        <div>Email: ${d.email}</div>
+        <div>Город: ${d.city}</div>
+        <div>Регион: ${d.region}</div>
+        <div>Индекс: ${d.zip}</div>
+        <div>Адрес: ${d.address}</div>
+      `;
+        const p = order.payment;
+        document.getElementById('paymentInfo').innerHTML = `
+        <h3>Оплата</h3>
+        <div>Транзакция: ${p.transaction}</div>
+        <div>Провайдер: ${p.provider}</div>
+        <div>Валюта: ${p.currency}</div>
+        <div>Сумма: ${p.amount}</div>
+        <div>Банк: ${p.bank}</div>
+        <div>Стоимость доставки: ${p.delivery_cost}</div>
+        <div>Стоимость товаров: ${p.goods_total}</div>
+        <div>Дата оплаты: ${new Date(p.payment_dt * 1000).toLocaleString('ru-RU')}</div>
+      `;
+
+        document.getElementById('itemsInfo').innerHTML = `
+        <h3>Товары (${order.items.length})</h3>
+        ${order.items.map(i => `
+          <div style="padding:10px 0; border-bottom:1px solid #eee;">
+            <div>Название: ${i.name}</div>
+            <div>Бренд: ${i.brand}</div>
+            <div>Цена: ${i.price}</div>
+            <div>Скидка: ${i.sale}%</div>
+            <div>Размер: ${i.size}</div>
+            <div>Статус: ${i.status}</div>
+          </div>
+        `).join('')}
+      `;
+    }
+    document.getElementById('fetchBtn').onclick = async () => {
+        const uid = document.getElementById('orderId').value.trim();
+        if (!uid) {
+            showError('Введите UID заказа');
+            return;
+        }
+        hideError();
+        hideOrderDetails();
+        showLoading(true);
+        try {
+            const res = await fetch(`${API_BASE}/order/${encodeURIComponent(uid)}`);
+            if (!res.ok) {
+                throw new Error(res.status === 404 ? 'Заказ не найден' : `Ошибка: ${res.status}`);
+            }
+            const order = await res.json();
+            renderOrder(order);
+            showOrderDetails();
+        } catch (err) {
+            showError(err.message);
+        } finally {
+            showLoading(false);
+        }
+    };
+</script>
+</body>
+</html>
