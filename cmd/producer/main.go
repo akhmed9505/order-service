@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"order-service-wbtech/internal/config"
@@ -22,14 +21,10 @@ func main() {
 
 	cfg := config.LoadConfig()
 
-	brokers := []string{os.Getenv("KAFKA_BROKERS")}
-	if brokers[0] == "" {
-		brokers = []string{"localhost:9094"}
-	}
 	topic := cfg.Kafkacfg.Topic
 
 	w := &kafka.Writer{
-		Addr:     kafka.TCP(brokers...),
+		Addr:     kafka.TCP([]string{cfg.Kafkacfg.Brokers}...),
 		Topic:    topic,
 		Balancer: &kafka.LeastBytes{},
 	}
@@ -39,7 +34,7 @@ func main() {
 		}
 	}()
 
-	log.Printf("Kafka producer started, brokers=%v, topic=%s", brokers, topic)
+	log.Printf("Kafka producer started, brokers=%v, topic=%s", cfg.Kafkacfg.Brokers, topic)
 
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
@@ -68,7 +63,7 @@ func main() {
 			continue
 		}
 
-		log.Printf("message produced order_uid=%s", order.OrderUID)
+		log.Printf("message produced order_uid=%s\n", order.OrderUID)
 	}
 }
 

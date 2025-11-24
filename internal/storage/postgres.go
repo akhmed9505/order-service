@@ -3,7 +3,6 @@ package storage
 import (
 	"context"
 	"fmt"
-
 	"order-service-wbtech/internal/config"
 	"order-service-wbtech/internal/model"
 
@@ -95,7 +94,6 @@ func (p *Postgres) SaveOrder(ctx context.Context, order *model.Order) error {
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("commit transaction: %w", err)
 	}
-
 	return nil
 }
 

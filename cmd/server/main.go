@@ -24,6 +24,7 @@ import (
 func main() {
 	// cfg
 	cfg := config.LoadConfig()
+	log.Printf("cfg = %+v", cfg)
 
 	// cache
 	orderCache, err := cache.New()
@@ -53,10 +54,6 @@ func main() {
 		Handler: srv.Router(),
 	}
 
-	// context
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	var wg sync.WaitGroup
 
 	// Starting HTTP server
@@ -66,16 +63,24 @@ func main() {
 		log.Printf("HTTP api started on %s", cfg.HTTPPort)
 		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Printf("HTTP api error: %v", err)
-			cancel()
 		}
 	}()
 
 	// Starting Kafka consumer
 	wg.Add(1)
+	ctxKafka, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	go func() {
 		defer wg.Done()
 		brokers := strings.Split(cfg.Kafkacfg.Brokers, ",")
-		kafka.StartConsumer(ctx, brokers, cfg.Kafkacfg.Topic, cfg.Kafkacfg.GroupID, srvc)
+		kafka.StartConsumerWithWorkerPool(
+			ctxKafka,
+			brokers,
+			cfg.Kafkacfg.Topic,
+			cfg.Kafkacfg.GroupID,
+			srvc,
+			10,
+		)
 	}()
 
 	// Waiting for SIGINT/SIGTERM signals
