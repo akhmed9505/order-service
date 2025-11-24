@@ -39,7 +39,7 @@ services:
 
   kafka:
     image: apache/kafka:latest
-    container_name: kafka-image-processor
+    container_name: order_service_kafka
     ports:
       - "9092:9092"
     environment:
